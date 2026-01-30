@@ -1,0 +1,44 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.2'
+        //https://github.com/novoda/bintray-release check latest version of novoda
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+        classpath 'org.owasp:dependency-check-gradle:12.1.8'
+
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://jitpack.io' }
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    }
+    tasks.withType(Javadoc) {
+        options{
+            encoding "UTF-8"
+            charSet 'UTF-8'
+            links "http://docs.oracle.com/javase/7/docs/api"
+            locale "en_US"
+        }
+    }
+}
+
+apply plugin: 'org.owasp.dependencycheck'
+
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

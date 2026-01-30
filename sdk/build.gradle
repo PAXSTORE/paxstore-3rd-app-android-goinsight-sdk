@@ -1,0 +1,72 @@
+apply plugin: 'com.android.library'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+android {
+    compileSdkVersion 34
+
+    defaultConfig {
+        minSdkVersion 19
+        //noinspection ExpiredTargetSdkVersion
+        targetSdkVersion 29
+
+        manifestPlaceholders = [versionName : "${version}"]
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        // add sdk proguard to aar
+        consumerProguardFiles 'proguard-rules.pro'
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    lintOptions {
+        abortOnError false
+    }
+    packagingOptions {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+    }
+    buildFeatures {
+        aidl true
+    }
+    namespace 'com.pax.market.android.app.sdk'
+    compileOptions {
+        //It is strongly recommended to set it to Java 8 or Java 11 for the best compatibility.
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    api fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'org.slf4j:slf4j-android:1.7.25'
+    implementation ('io.jsonwebtoken:jjwt:0.9.0') {
+        exclude group : 'com.fasterxml.jackson.core'
+    }
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.5'
+    implementation 'com.google.code.gson:gson:2.9.0'
+
+
+    api 'com.whatspos.sdk:paxstore-3rd-app-java-sdk:10.0.203-SNAPSHOT'
+    api 'com.whatspos.sdk:paxstore-3rd-app-android-cloud-msg-sdk:10.0.010802-SNAPSHOT'
+
+
+
+//    test
+//    implementation 'commons-io:commons-io:2.7'
+//    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+//    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+//    api files('libs\\app-java-sdk-8.4.2.1.jar')
+}
+
+apply from :"../publishAndroidLib.gradle"
+
+tasks.named('publish') {
+    dependsOn 'clean'
+}

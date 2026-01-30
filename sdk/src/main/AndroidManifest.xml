@@ -1,0 +1,20 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!--    END  -->
+    <queries>
+        <package android:name="com.pax.market.android.app" />
+    </queries>
+
+    <application android:label="@string/app_name">
+        <!-- Add below meta-data to indicate that this sdk support multi-dis env -->
+        <meta-data
+            android:name="DIS_SUPPORTED"
+            android:value="true" />
+
+
+        <!-- Add below meta-data to support GoInsight -->
+        <meta-data
+            android:name="STORE_SDK_VERSION"
+            android:value="V${versionName}" />
+    </application>
+</manifest>
