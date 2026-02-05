@@ -1,10 +1,6 @@
 package com.pax.market.android.app.sdk.goinsight.internal;
 
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.util.Base64;
+import android.os.Build;
 
 import com.pax.market.android.app.sdk.device.model.InstalledAppInfo;
 import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;
@@ -13,7 +9,6 @@ import com.pax.market.android.app.sdk.goinsight.dto.DatasetAssociateColsResponse
 import com.pax.market.android.app.sdk.goinsight.internal.key.AppCollectKey;
 import com.pax.market.android.app.sdk.goinsight.internal.key.BasicIngestionKey;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,9 +16,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class GoInsightAssociateCollector {
-    private static final int MAX_ICON_BYTES = 30 * 1024;
-    private static final int ICON_SIZE_PX = 64;
-
     private final DeviceInfoProvider deviceInfoProvider;
     private final InstalledAppsProvider installedAppsProvider;
 
@@ -43,6 +35,7 @@ public class GoInsightAssociateCollector {
         if (!deviceData.isEmpty()) {
             result.add(deviceData);
         }
+        result.addAll(buildInstalledAppsData(config));
         return result;
     }
 
@@ -51,9 +44,7 @@ public class GoInsightAssociateCollector {
             return new HashMap<>();
         }
         Set<BasicIngestionKey> basicKeys = BasicIngestionKey.fromKeys(config.getBasicIngestionCols());
-        boolean hasAppCols = config.getAppIngestionCols() != null
-                && !config.getAppIngestionCols().isEmpty();
-        if (basicKeys.isEmpty() && !hasAppCols) {
+        if (basicKeys.isEmpty()) {
             return new HashMap<>();
         }
 
@@ -61,110 +52,94 @@ public class GoInsightAssociateCollector {
         for (BasicIngestionKey key : basicKeys) {
             map.put(key.getKey(), key.getValue(deviceInfoProvider));
         }
-        if (hasAppCols) {
-            map.put("installedApps", buildInstalledAppsData(config));
-        }
         return map;
     }
 
     private List<Map<String, Object>> buildInstalledAppsData(DatasetAssociateColsResponse config) {
-        if (config == null || config.getAppIngestionCols() == null
-                || config.getAppIngestionCols().isEmpty()) {
+        if (config == null) {
             return new ArrayList<>();
         }
-        List<InstalledAppInfo> apps = installedAppsProvider.getInstalledApps();
-        if (apps == null || apps.isEmpty()) {
+        List<DatasetAssociateColsResponse.AppAssociateColumn> appColumns =
+                config.getAppIngestionCols();
+        if (appColumns == null || appColumns.isEmpty()) {
             return new ArrayList<>();
         }
-        Map<String, List<DatasetAssociateColsResponse.AppAssociateColumn>> columnsByPackage =
-                new HashMap<>();
-        List<DatasetAssociateColsResponse.AppAssociateColumn> globalColumns = new ArrayList<>();
-        for (DatasetAssociateColsResponse.AppAssociateColumn column : config.getAppIngestionCols()) {
+        Map<String, InstalledAppInfo> appsByPackage =
+                buildAppsByPackage(installedAppsProvider.getInstalledApps());
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (DatasetAssociateColsResponse.AppAssociateColumn column : appColumns) {
             if (column == null) {
                 continue;
             }
             String packageName = column.getPackageName();
             if (isNullOrEmpty(packageName)) {
-                globalColumns.add(column);
                 continue;
             }
-            List<DatasetAssociateColsResponse.AppAssociateColumn> list =
-                    columnsByPackage.get(packageName);
-            if (list == null) {
-                list = new ArrayList<>();
-                columnsByPackage.put(packageName, list);
-            }
-            list.add(column);
-        }
-
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (InstalledAppInfo app : apps) {
-            List<DatasetAssociateColsResponse.AppAssociateColumn> columns = new ArrayList<>();
-            List<DatasetAssociateColsResponse.AppAssociateColumn> packageColumns =
-                    columnsByPackage.get(app.getPackageName());
-            if (packageColumns != null) {
-                columns.addAll(packageColumns);
-            }
-            if (!globalColumns.isEmpty()) {
-                columns.addAll(globalColumns);
-            }
-            if (columns.isEmpty()) {
+            String key = column.getIngestionColName();
+            if (isNullOrEmpty(key)) {
                 continue;
             }
-            Map<String, Object> map = new HashMap<>();
-            for (DatasetAssociateColsResponse.AppAssociateColumn column : columns) {
-                AppCollectKey collectKey = AppCollectKey.fromKey(column.getCollectColName());
-                if (collectKey == null) {
+            AppCollectKey collectKey = AppCollectKey.fromKey(column.getCollectColName());
+            if (collectKey == null) {
+                continue;
+            }
+            InstalledAppInfo app = appsByPackage.get(packageName);
+            if (app == null) {
+                if (!isFirmwarePackage(packageName)) {
                     continue;
                 }
-                Object value = collectKey.getValue(app, this::encodeIcon);
-                String key = isNullOrEmpty(column.getIngestionColName())
-                        ? collectKey.getKey()
-                        : column.getIngestionColName();
-                if (!isNullOrEmpty(key)) {
-                    map.put(key, value);
-                }
+                app = createPlaceholderApp(packageName);
             }
-            if (!map.isEmpty()) {
-                result.add(map);
-            }
+            Object value = collectKey.getValue(app);
+            Map<String, Object> map = new HashMap<>();
+            map.put(key, value);
+            result.add(map);
         }
         return result;
     }
 
-    private String encodeIcon(Drawable drawable) {
-        try {
-            Bitmap bitmap = toBitmap(drawable, ICON_SIZE_PX, ICON_SIZE_PX);
-            if (bitmap == null) {
-                return null;
-            }
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
-            byte[] data = outputStream.toByteArray();
-            if (data.length > MAX_ICON_BYTES) {
-                return null;
-            }
-            return "data:image/png;base64," + Base64.encodeToString(data, Base64.NO_WRAP);
-        } catch (Throwable ignored) {
-            return null;
+    private Map<String, InstalledAppInfo> buildAppsByPackage(List<InstalledAppInfo> apps) {
+        Map<String, InstalledAppInfo> appsByPackage = new HashMap<>();
+        if (apps == null || apps.isEmpty()) {
+            return appsByPackage;
         }
+        for (InstalledAppInfo app : apps) {
+            if (app != null && !isNullOrEmpty(app.getPackageName())) {
+                appsByPackage.put(app.getPackageName(), app);
+            }
+        }
+        return appsByPackage;
     }
 
-    private Bitmap toBitmap(Drawable drawable, int width, int height) {
-        if (drawable == null) {
-            return null;
+    private InstalledAppInfo createPlaceholderApp(String packageName) {
+        String type = isFirmwarePackage(packageName) ? "Firmware" : null;
+        return new InstalledAppInfo(
+                packageName,
+                isFirmwarePackage(packageName) ? getFirmwareVersion() : null,
+                null,
+                type,
+                false,
+                null,
+                null,
+                null
+        );
+    }
+
+    private boolean isFirmwarePackage(String packageName) {
+        return "firmware".equalsIgnoreCase(packageName);
+    }
+
+    private String getFirmwareVersion() {
+        String display = Build.DISPLAY;
+        if (display != null && !display.trim().isEmpty()) {
+            return display;
         }
-        if (drawable instanceof BitmapDrawable) {
-            Bitmap source = ((BitmapDrawable) drawable).getBitmap();
-            if (source != null) {
-                return Bitmap.createScaledBitmap(source, width, height, true);
-            }
+        String incremental = Build.VERSION.INCREMENTAL;
+        if (incremental != null && !incremental.trim().isEmpty()) {
+            return incremental;
         }
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        drawable.setBounds(0, 0, width, height);
-        drawable.draw(canvas);
-        return bitmap;
+        return Build.VERSION.RELEASE;
     }
 
     private boolean isNullOrEmpty(String value) {

@@ -1,6 +1,7 @@
 package com.pax.market.android.app.sdk.goinsight;
 
 import android.content.Context;
+
 import com.pax.market.android.app.sdk.goinsight.dto.DatasetAssociateColsResponse;
 import com.pax.market.android.app.sdk.goinsight.internal.GoInsightAssociateCollector;
 import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;

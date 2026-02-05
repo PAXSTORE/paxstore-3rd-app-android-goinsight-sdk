@@ -1,6 +1,7 @@
 package com.pax.android.demoapp.view;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothClass;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,6 +22,9 @@ import com.pax.android.demoapp.utils.DateUtils;
 import com.pax.android.demoapp.utils.RandomCSVReader;
 import com.pax.android.demoapp.utils.SPUtil;
 import com.pax.market.android.app.sdk.StoreSdk;
+import com.pax.market.android.app.sdk.device.model.LocationInfo;
+import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
+import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;
 import com.pax.market.api.sdk.java.base.dto.SdkObject;
 
 import java.util.ArrayList;
@@ -52,6 +56,7 @@ public class GoInsightActivity extends Activity {
         initData();
         initViews();
         setupRecyclerView();
+        DevicePermissionManager.requestAllRequiredPermissions(this, 1010);
     }
 
     private void initData() {

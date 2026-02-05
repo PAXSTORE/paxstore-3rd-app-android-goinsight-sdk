@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 34
     defaultConfig {
-        applicationId "com.pax.android.demoapp"
+        applicationId "com.pax.android.demoapp.goinsight"
         minSdkVersion 19
         targetSdkVersion 34
         versionCode 1100
@@ -53,7 +53,9 @@ dependencies {
     implementation 'androidx.cardview:cardview:1.0.0'
 
 
-    implementation project(':sdk')
+    implementation(project(":sdk")) {
+        exclude group: "com.whatspos.sdk", module: "paxstore-3rd-app-java-sdk"
+    }
     implementation 'org.slf4j:slf4j-api:1.7.12'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'

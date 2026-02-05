@@ -35,7 +35,7 @@ android {
     buildFeatures {
         aidl true
     }
-    namespace 'com.pax.market.android.app.sdk'
+    namespace 'com.pax.market.android.app.goinsight.sdk'
     compileOptions {
         //It is strongly recommended to set it to Java 8 or Java 11 for the best compatibility.
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -54,7 +54,6 @@ dependencies {
 
 
     api 'com.whatspos.sdk:paxstore-3rd-app-java-sdk:10.0.203-SNAPSHOT'
-    api 'com.whatspos.sdk:paxstore-3rd-app-android-cloud-msg-sdk:10.0.010802-SNAPSHOT'
 
 
 
