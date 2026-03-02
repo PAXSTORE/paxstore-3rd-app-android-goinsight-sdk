@@ -98,6 +98,34 @@ public class DeviceInfoProvider {
                 }
             } catch (SecurityException ignored) {
             }
+            if (DevicePermissionManager.hasPermission(appContext,
+                    DevicePermissionManager.PERMISSION_READ_PRIVILEGED_PHONE_STATE)) {
+                try {
+                    for (int slot = 0; slot <= 1; slot++) {
+                        String imei = telephonyManager.getImei(slot);
+                        if (!TextUtils.isEmpty(imei)) {
+                            return imei;
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+            try {
+                String meid = telephonyManager.getMeid();
+                if (!TextUtils.isEmpty(meid)) {
+                    return meid;
+                }
+            } catch (SecurityException ignored) {
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    String meid = telephonyManager.getMeid(0);
+                    if (!TextUtils.isEmpty(meid)) {
+                        return meid;
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
         }
         return null;
     }
@@ -299,6 +327,10 @@ public class DeviceInfoProvider {
         return getOperatorNameForSubscriptionIndex(1);
     }
 
+    /**
+     * Returns SIM ICCID. On Android 10 (API 29) and above, non-null result typically requires
+     * READ_PRIVILEGED_PHONE_STATE (system/signature apps only); otherwise returns null.
+     */
     @SuppressLint("HardwareIds")
     public String getIccid() {
         String iccid = getIccidForSubscriptionIndex(0);
@@ -436,6 +468,10 @@ public class DeviceInfoProvider {
         }
     }
 
+    /**
+     * Gets signal level (0-4) from CellInfo. Prefers registered cells; also considers all cells
+     * for max level so the result is closer to the system status bar (which often shows best signal).
+     */
     private Integer getSignalLevelFromCellInfo(TelephonyManager telephonyManager) {
         try {
             List<CellInfo> cellInfos = telephonyManager.getAllCellInfo();
@@ -443,15 +479,24 @@ public class DeviceInfoProvider {
                 return null;
             }
             int maxLevel = -1;
+            int maxLevelRegistered = -1;
             for (CellInfo cellInfo : cellInfos) {
-                if (cellInfo != null && cellInfo.isRegistered()) {
-                    Integer level = getLevelFromCellInfo(cellInfo);
-                    if (level != null && level > maxLevel) {
-                        maxLevel = level;
-                    }
+                if (cellInfo == null) {
+                    continue;
+                }
+                Integer level = getLevelFromCellInfo(cellInfo);
+                if (level != null && level > maxLevel) {
+                    maxLevel = level;
+                }
+                if (cellInfo.isRegistered() && level != null && level > maxLevelRegistered) {
+                    maxLevelRegistered = level;
                 }
             }
-            return maxLevel >= 0 ? maxLevel : null;
+            int result = maxLevelRegistered >= 0 ? maxLevelRegistered : maxLevel;
+            if (result < 0) {
+                return null;
+            }
+            return Math.min(4, result);
         } catch (SecurityException ignored) {
             return null;
         }
@@ -470,7 +515,33 @@ public class DeviceInfoProvider {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && cellInfo instanceof CellInfoNr) {
             strength = ((CellInfoNr) cellInfo).getCellSignalStrength();
         }
-        return strength != null ? strength.getLevel() : null;
+        if (strength == null) {
+            return null;
+        }
+        int level = strength.getLevel();
+        int levelFromRsrp = getLevelFromRsrp(strength);
+        return levelFromRsrp >= 0 ? Math.max(level, levelFromRsrp) : level;
+    }
+
+    /**
+     * Maps RSRP/dBm to 0-4 using thresholds that tend to match system status bar display.
+     * getLevel() can be stricter than the UI; this gives a more aligned value for LTE/NR.
+     */
+    private int getLevelFromRsrp(CellSignalStrength strength) {
+        int dbm;
+        try {
+            dbm = strength.getDbm();
+        } catch (Throwable ignored) {
+            return -1;
+        }
+        if (dbm >= 0 || dbm < -140) {
+            return -1;
+        }
+        if (dbm >= -85) return 4;
+        if (dbm >= -95) return 3;
+        if (dbm >= -105) return 2;
+        if (dbm >= -115) return 1;
+        return 0;
     }
 
     private String getCellIdForTelephonyManager(TelephonyManager telephonyManager) {

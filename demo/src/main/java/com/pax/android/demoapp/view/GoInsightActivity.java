@@ -35,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 public class GoInsightActivity extends Activity {
-
-
     private static final String TAG = GoInsightActivity.class.getSimpleName();
     private static final String SP_SALES = "sp_sales";
     private static final String CSV_FILE_NAME = "sales_data.csv";
@@ -49,7 +47,6 @@ public class GoInsightActivity extends Activity {
     private int itemCounter = 1;
     private RandomCSVReader csvReader;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +58,7 @@ public class GoInsightActivity extends Activity {
 
         DeviceInfoFacade deviceInfoFacade = new DeviceInfoFacade(this);
         deviceInfoFacade.requestAllRequiredPermissions(this, 1001);
+//        printBasicIngestionKeyValues();
     }
 
     private void printBasicIngestionKeyValues() {
@@ -100,7 +98,6 @@ public class GoInsightActivity extends Activity {
     }
 
     private void initData() {
-
         SalesRecords = spUtil.getDataListByType(getApplicationContext(), SP_SALES, new TypeToken<List<SalesRecord>>() {
         });
         if (SalesRecords == null || SalesRecords.isEmpty()) {
@@ -113,9 +110,7 @@ public class GoInsightActivity extends Activity {
             uploadList(SalesRecords);
         }
 
-
         itemCounter = SalesRecords.size();
-
     }
 
     private void initViews() {
@@ -221,7 +216,6 @@ public class GoInsightActivity extends Activity {
         Log.d(TAG, "init csv reader success");
     }
 
-
     @NonNull
     private static List<Map<String, Object>> getUploadList(List<SalesRecord> itemList) {
         if (itemList == null || itemList.isEmpty()) {
@@ -239,7 +233,6 @@ public class GoInsightActivity extends Activity {
     @NonNull
     private static Map<String, Object> transferToUploadMap(SalesRecord newItem) {
         Map<String, Object> map = new HashMap<>();
-
 
         map.put("segment", newItem.getSegment());
         map.put("city", newItem.getCity());

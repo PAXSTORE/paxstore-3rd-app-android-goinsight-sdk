@@ -24,13 +24,18 @@ public final class DevicePermissionManager {
     /** QUERY_ALL_PACKAGES added in API 30; use string to support minSdk &lt; 30 */
     @SuppressLint("InlinedApi")
     public static final String PERMISSION_QUERY_ALL_PACKAGES = Manifest.permission.QUERY_ALL_PACKAGES;
+    public static final String PERMISSION_GET_INSTALLED_APPS = "com.android.permission.GET_INSTALLED_APPS";
+    /** Signature/privileged only; used to read IMEI/ICCID on API 29+. Not requestable by normal apps. */
+    @SuppressLint("InlinedApi")
+    public static final String PERMISSION_READ_PRIVILEGED_PHONE_STATE = "android.permission.READ_PRIVILEGED_PHONE_STATE";
 
     private static final String[] BASE_REQUIRED_PERMISSIONS = new String[] {
             PERMISSION_READ_PHONE_STATE,
             PERMISSION_ACCESS_FINE_LOCATION,
             PERMISSION_ACCESS_COARSE_LOCATION,
             PERMISSION_ACCESS_NETWORK_STATE,
-            PERMISSION_ACCESS_WIFI_STATE
+            PERMISSION_ACCESS_WIFI_STATE,
+            PERMISSION_GET_INSTALLED_APPS
     };
 
     private static final int API_LEVEL_QUERY_ALL_PACKAGES = 30;
@@ -45,6 +50,7 @@ public final class DevicePermissionManager {
         if (Build.VERSION.SDK_INT >= API_LEVEL_QUERY_ALL_PACKAGES) {
             permissions.add(PERMISSION_QUERY_ALL_PACKAGES);
         }
+        permissions.add(PERMISSION_GET_INSTALLED_APPS);
         return permissions;
     }
 
@@ -84,6 +90,10 @@ public final class DevicePermissionManager {
         if (PERMISSION_QUERY_ALL_PACKAGES.equals(permission) && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return true;
         }
-        return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+        try {
+            return context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 }
