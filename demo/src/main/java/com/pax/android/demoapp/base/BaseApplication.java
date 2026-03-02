@@ -8,6 +8,8 @@ import android.widget.Toast;
 
 import com.pax.android.demoapp.R;
 
+import com.pax.market.android.app.sdk.BaseApiService;
+import com.pax.market.android.app.sdk.StoreSdk;
 import com.pax.market.android.app.sdk.msg.utils.Notifications;
 
 
@@ -33,26 +35,26 @@ public class BaseApplication extends Application {
 
     private void initStoreSdk() {
 //        //todo 1. Init AppKey，AppSecret and SN, make sure the appkey and appSecret is corret.
-//        StoreSdk.getInstance().init(getApplicationContext(), appkey, appSecret, new BaseApiService.Callback() {
-//            @Override
-//            public void initSuccess() {
-//                Log.i(TAG, "initSuccess.");
-//
-//            }
-//
-//            @Override
-//            public void initFailed(RemoteException e) {
-//                Log.i(TAG, "initFailed: "+e.getMessage());
-//                Toast.makeText(getApplicationContext(), "Cannot get API URL from STORE client," +
-//                        " Please install STORE client first.", Toast.LENGTH_LONG).show();
-//            }
-//        });
-//        //if you want to customize the notification for Cloud Message.
-//        Notifications.I.init(getApplicationContext())
-//                .setSmallIcon(R.drawable.logo_demo_white)
-//                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.logo_demo));
-//
-//        // disable the Notifications we provided through below code.
-//        // Notifications.I.setEnabled(false);
+        StoreSdk.getInstance().init(getApplicationContext(), appkey, appSecret, new BaseApiService.Callback() {
+            @Override
+            public void initSuccess() {
+                Log.i(TAG, "initSuccess.");
+
+            }
+
+            @Override
+            public void initFailed(RemoteException e) {
+                Log.i(TAG, "initFailed: "+e.getMessage());
+                Toast.makeText(getApplicationContext(), "Cannot get API URL from STORE client," +
+                        " Please install STORE client first.", Toast.LENGTH_LONG).show();
+            }
+        });
+        //if you want to customize the notification for Cloud Message.
+        Notifications.I.init(getApplicationContext())
+                .setSmallIcon(R.drawable.logo_demo_white)
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.logo_demo));
+
+        // disable the Notifications we provided through below code.
+        // Notifications.I.setEnabled(false);
     }
 }

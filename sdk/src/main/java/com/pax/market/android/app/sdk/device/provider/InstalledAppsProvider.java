@@ -27,6 +27,12 @@ public class InstalledAppsProvider {
         this.appContext = context.getApplicationContext();
     }
 
+    /**
+     * Returns a list of all installed apps on the device.
+     * On Android 11 (API 30) and above, the host app must declare
+     * {@code QUERY_ALL_PACKAGES} in its manifest to get the full list;
+     * otherwise only the app itself and packages in {@code <queries>} are visible.
+     */
     public List<InstalledAppInfo> getInstalledApps() {
         PackageManager packageManager = appContext.getPackageManager();
         if (packageManager == null) {

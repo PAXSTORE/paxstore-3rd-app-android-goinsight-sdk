@@ -1,5 +1,7 @@
 package com.pax.market.android.app.sdk.device.provider;
 
+import static android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA;
+
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
@@ -19,11 +21,15 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
 import android.telephony.CellInfoWcdma;
 import android.telephony.CellLocation;
+import android.telephony.CellSignalStrength;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
+import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
+import android.telephony.TelephonyCallback;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
@@ -31,8 +37,6 @@ import android.text.TextUtils;
 import com.pax.market.android.app.sdk.device.model.LocationInfo;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
-
-import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -42,23 +46,18 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 public class DeviceInfoProvider {
+    private static final int API_LEVEL_SIGNAL_STRENGTHS_LISTENER = 31;
+
     private final Context appContext;
+    private volatile Integer cachedDefaultSignalLevel = null;
+    private volatile boolean defaultSignalCallbackRegistered = false;
 
     public DeviceInfoProvider(Context context) {
         this.appContext = context.getApplicationContext();
     }
 
     public String getLanguage() {
-        Locale locale = appContext.getResources().getConfiguration().locale;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return locale.toLanguageTag();
-        }
-        String language = locale.getLanguage();
-        String country = locale.getCountry();
-        if (TextUtils.isEmpty(country)) {
-            return language;
-        }
-        return language + "-" + country;
+        return Locale.getDefault().toString();
     }
 
     public String getTimeZoneId() {
@@ -84,27 +83,21 @@ public class DeviceInfoProvider {
         if (telephonyManager == null) {
             return null;
         }
-        String deviceId = invokeTelephonyString(telephonyManager, "getDeviceId");
-        if (!TextUtils.isEmpty(deviceId)) {
-            return deviceId;
+        try {
+            String deviceId = telephonyManager.getDeviceId();
+            if (!TextUtils.isEmpty(deviceId)) {
+                return deviceId;
+            }
+        } catch (SecurityException ignored) {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String imei = invokeTelephonyString(telephonyManager, "getImei");
-            if (!TextUtils.isEmpty(imei)) {
-                return imei;
+            try {
+                String imei = telephonyManager.getImei();
+                if (!TextUtils.isEmpty(imei)) {
+                    return imei;
+                }
+            } catch (SecurityException ignored) {
             }
-        }
-        return null;
-    }
-
-    private String invokeTelephonyString(TelephonyManager telephonyManager, String methodName) {
-        try {
-            Method method = TelephonyManager.class.getMethod(methodName);
-            Object value = method.invoke(telephonyManager);
-            if (value instanceof String) {
-                return (String) value;
-            }
-        } catch (Throwable ignored) {
         }
         return null;
     }
@@ -242,7 +235,7 @@ public class DeviceInfoProvider {
                 && subtype == TelephonyManager.NETWORK_TYPE_NR) {
             return NetworkType.NETWORK_5G;
         }
-        if (subtype == TelephonyManager.NETWORK_TYPE_LTE || isLteCaSubtype(subtype)) {
+        if (subtype == TelephonyManager.NETWORK_TYPE_LTE) {
             return NetworkType.NETWORK_4G;
         }
         switch (subtype) {
@@ -255,7 +248,7 @@ public class DeviceInfoProvider {
             case TelephonyManager.NETWORK_TYPE_EVDO_B:
             case TelephonyManager.NETWORK_TYPE_EHRPD:
             case TelephonyManager.NETWORK_TYPE_HSPA:
-            case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+            case NETWORK_TYPE_TD_SCDMA:
                 return NetworkType.NETWORK_3G;
             case TelephonyManager.NETWORK_TYPE_GPRS:
             case TelephonyManager.NETWORK_TYPE_EDGE:
@@ -265,19 +258,6 @@ public class DeviceInfoProvider {
                 return NetworkType.NETWORK_2G;
             default:
                 return NetworkType.NETWORK_UNKNOWN;
-        }
-    }
-
-    private boolean isLteCaSubtype(int subtype) {
-        Integer lteCa = getTelephonyNetworkTypeConstant("NETWORK_TYPE_LTE_CA");
-        return lteCa != null && lteCa == subtype;
-    }
-
-    private Integer getTelephonyNetworkTypeConstant(String fieldName) {
-        try {
-            return TelephonyManager.class.getField(fieldName).getInt(null);
-        } catch (Throwable ignored) {
-            return null;
         }
     }
 
@@ -333,7 +313,11 @@ public class DeviceInfoProvider {
                 DevicePermissionManager.PERMISSION_READ_PHONE_STATE)) {
             return null;
         }
-        iccid = invokeTelephonyString(telephonyManager, "getSimSerialNumber");
+        try {
+            iccid = telephonyManager.getSimSerialNumber();
+        } catch (SecurityException ignored) {
+            iccid = null;
+        }
         if (!TextUtils.isEmpty(iccid)) {
             return iccid;
         }
@@ -412,58 +396,81 @@ public class DeviceInfoProvider {
 
     @SuppressLint("MissingPermission")
     private Integer getSignalLevelForTelephonyManager(TelephonyManager telephonyManager) {
-        if (telephonyManager == null || !hasLocationPermission()) {
+        if (telephonyManager == null) {
             return null;
         }
+        if (!DevicePermissionManager.hasPermission(appContext,
+                DevicePermissionManager.PERMISSION_READ_PHONE_STATE)) {
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !hasLocationPermission()) {
+            return null;
+        }
+        TelephonyManager defaultTm = getDefaultTelephonyManager();
+        if (Build.VERSION.SDK_INT >= API_LEVEL_SIGNAL_STRENGTHS_LISTENER && telephonyManager == defaultTm) {
+            ensureDefaultSignalStrengthCallbackRegistered(defaultTm);
+            if (cachedDefaultSignalLevel != null) {
+                return cachedDefaultSignalLevel;
+            }
+        }
+        return getSignalLevelFromCellInfo(telephonyManager);
+    }
+
+    private void ensureDefaultSignalStrengthCallbackRegistered(TelephonyManager telephonyManager) {
+        if (telephonyManager == null || defaultSignalCallbackRegistered) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < API_LEVEL_SIGNAL_STRENGTHS_LISTENER) {
+            return;
+        }
+        synchronized (this) {
+            if (defaultSignalCallbackRegistered) {
+                return;
+            }
+            try {
+                TelephonyCallback callback = new SignalStrengthTelephonyCallback(this);
+                telephonyManager.registerTelephonyCallback(appContext.getMainExecutor(), callback);
+                defaultSignalCallbackRegistered = true;
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private Integer getSignalLevelFromCellInfo(TelephonyManager telephonyManager) {
         try {
             List<CellInfo> cellInfos = telephonyManager.getAllCellInfo();
             if (cellInfos == null) {
                 return null;
             }
+            int maxLevel = -1;
             for (CellInfo cellInfo : cellInfos) {
                 if (cellInfo != null && cellInfo.isRegistered()) {
                     Integer level = getLevelFromCellInfo(cellInfo);
-                    if (level != null) {
-                        return level;
+                    if (level != null && level > maxLevel) {
+                        maxLevel = level;
                     }
                 }
             }
+            return maxLevel >= 0 ? maxLevel : null;
         } catch (SecurityException ignored) {
             return null;
         }
-        return null;
     }
 
     private Integer getLevelFromCellInfo(CellInfo cellInfo) {
+        CellSignalStrength strength = null;
         if (cellInfo instanceof CellInfoGsm) {
-            return invokeIntegerMethod(
-                    ((CellInfoGsm) cellInfo).getCellSignalStrength(), "getLevel");
+            strength = ((CellInfoGsm) cellInfo).getCellSignalStrength();
+        } else if (cellInfo instanceof CellInfoLte) {
+            strength = ((CellInfoLte) cellInfo).getCellSignalStrength();
+        } else if (cellInfo instanceof CellInfoWcdma) {
+            strength = ((CellInfoWcdma) cellInfo).getCellSignalStrength();
+        } else if (cellInfo instanceof CellInfoCdma) {
+            strength = ((CellInfoCdma) cellInfo).getCellSignalStrength();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && cellInfo instanceof CellInfoNr) {
+            strength = ((CellInfoNr) cellInfo).getCellSignalStrength();
         }
-        if (cellInfo instanceof CellInfoLte) {
-            return invokeIntegerMethod(
-                    ((CellInfoLte) cellInfo).getCellSignalStrength(), "getLevel");
-        }
-        if (cellInfo instanceof CellInfoWcdma) {
-            return invokeIntegerMethod(
-                    ((CellInfoWcdma) cellInfo).getCellSignalStrength(), "getLevel");
-        }
-        if (cellInfo instanceof CellInfoCdma) {
-            return invokeIntegerMethod(
-                    ((CellInfoCdma) cellInfo).getCellSignalStrength(), "getLevel");
-        }
-        return null;
-    }
-
-    private Integer invokeIntegerMethod(Object target, String methodName) {
-        try {
-            Method method = target.getClass().getMethod(methodName);
-            Object value = method.invoke(target);
-            if (value instanceof Integer) {
-                return (Integer) value;
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
+        return strength != null ? strength.getLevel() : null;
     }
 
     private String getCellIdForTelephonyManager(TelephonyManager telephonyManager) {
@@ -576,5 +583,26 @@ public class DeviceInfoProvider {
             return telephonyManager;
         }
         return telephonyManager.createForSubscriptionId(subscriptionId);
+    }
+
+    void setCachedDefaultSignalLevel(Integer level) {
+        this.cachedDefaultSignalLevel = level;
+    }
+
+    @android.annotation.SuppressLint("NewApi")
+    private static class SignalStrengthTelephonyCallback extends TelephonyCallback
+            implements TelephonyCallback.SignalStrengthsListener {
+        private final DeviceInfoProvider provider;
+
+        SignalStrengthTelephonyCallback(DeviceInfoProvider p) {
+            provider = p;
+        }
+
+        @Override
+        public void onSignalStrengthsChanged(SignalStrength signalStrength) {
+            if (signalStrength != null) {
+                provider.setCachedDefaultSignalLevel(signalStrength.getLevel());
+            }
+        }
     }
 }

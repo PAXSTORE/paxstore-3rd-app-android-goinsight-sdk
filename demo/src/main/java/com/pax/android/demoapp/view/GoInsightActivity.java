@@ -1,7 +1,6 @@
 package com.pax.android.demoapp.view;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothClass;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,10 +20,13 @@ import com.pax.android.demoapp.utils.CustomToast;
 import com.pax.android.demoapp.utils.DateUtils;
 import com.pax.android.demoapp.utils.RandomCSVReader;
 import com.pax.android.demoapp.utils.SPUtil;
-import com.pax.market.android.app.sdk.StoreSdk;
-import com.pax.market.android.app.sdk.device.model.LocationInfo;
-import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
+import com.pax.market.android.app.sdk.StoreSdkExtention;
+import com.pax.market.android.app.sdk.device.facade.DeviceInfoFacade;
+import com.pax.market.android.app.sdk.device.model.InstalledAppInfo;
 import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;
+import com.pax.market.android.app.sdk.device.provider.InstalledAppsProvider;
+import com.pax.market.android.app.sdk.goinsight.internal.key.AppCollectKey;
+import com.pax.market.android.app.sdk.goinsight.internal.key.BasicIngestionKey;
 import com.pax.market.api.sdk.java.base.dto.SdkObject;
 
 import java.util.ArrayList;
@@ -56,7 +58,45 @@ public class GoInsightActivity extends Activity {
         initData();
         initViews();
         setupRecyclerView();
-        DevicePermissionManager.requestAllRequiredPermissions(this, 1010);
+
+        DeviceInfoFacade deviceInfoFacade = new DeviceInfoFacade(this);
+        deviceInfoFacade.requestAllRequiredPermissions(this, 1001);
+    }
+
+    private void printBasicIngestionKeyValues() {
+        DeviceInfoProvider provider = new DeviceInfoProvider(this);
+        Log.d("zzz", "=== BasicIngestionKey key -> value ===");
+        for (BasicIngestionKey key : BasicIngestionKey.values()) {
+            try {
+                Object value = key.getValue(provider);
+                Log.d("zzz", "  " + key.getKey() + " = " + value);
+            } catch (Exception e) {
+                Log.d("zzz", "  " + key.getKey() + " = (error: " + e.getMessage() + ")");
+            }
+        }
+    }
+
+    private void printAppCollectKeyValues() {
+        List<InstalledAppInfo> apps = new InstalledAppsProvider(this).getInstalledApps();
+        Log.d(TAG, "=== AppCollectKey key -> value (all apps: " + apps.size() + ") ===");
+        if (apps.isEmpty()) {
+            for (AppCollectKey key : AppCollectKey.values()) {
+                Log.d(TAG, "  " + key.getKey() + " = (no installed app)");
+            }
+            return;
+        }
+        for (int i = 0; i < apps.size(); i++) {
+            InstalledAppInfo app = apps.get(i);
+            Log.d(TAG, "--- App " + (i + 1) + "/" + apps.size() + ": " + app.getPackageName() + " (" + app.getAppName() + ") ---");
+            for (AppCollectKey key : AppCollectKey.values()) {
+                try {
+                    Object value = key.getValue(app);
+                    Log.d(TAG, "  " + key.getKey() + " = " + value);
+                } catch (Exception e) {
+                    Log.d(TAG, "  " + key.getKey() + " = (error: " + e.getMessage() + ")");
+                }
+            }
+        }
     }
 
     private void initData() {
@@ -127,7 +167,7 @@ public class GoInsightActivity extends Activity {
     private void uploadData(SalesRecord newItem, List<Map<String, Object>> list, LoadingAlertDialog loadingAlertDialog) {
         new Thread(() -> {
             try {
-                SdkObject sdkObject = StoreSdk.getInstance().goInsightApi().syncTerminalBizData(list);
+                SdkObject sdkObject = StoreSdkExtention.getInstance().goInsightAssociateApi().syncTerminalBizDataWithDeviceInfo(list);
                 if (sdkObject.getBusinessCode() == 0) {
                     runOnUiThread(() -> {
                         if (newItem != null) {

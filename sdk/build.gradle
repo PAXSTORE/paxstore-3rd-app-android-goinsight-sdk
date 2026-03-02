@@ -5,7 +5,7 @@ java {
 }
 
 android {
-    compileSdkVersion 34
+    compileSdkVersion 35
 
     defaultConfig {
         minSdkVersion 19
@@ -54,6 +54,7 @@ dependencies {
 
 
     api 'com.whatspos.sdk:paxstore-3rd-app-java-sdk:10.0.203-SNAPSHOT'
+    compileOnly 'com.whatspos.sdk:paxstore-3rd-app-android-sdk:10.0.1'
 
 
 
