@@ -31,7 +31,7 @@ public enum BasicIngestionKey {
             return provider.isBluetoothSupported();
         }
     },
-    ASS_GRAVITY_SENSOR("ass_gravitySensor") {
+    ASS_GRAVITY_SENSOR("ass_gravitysensor") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.isGravitySensorSupported();
@@ -67,37 +67,37 @@ public enum BasicIngestionKey {
             return provider.getLocation();
         }
     },
-    ASS_SIM_CARD_TWO("ass_simCardTwo") {
+    ASS_SIM_CARD_TWO("ass_simcardtwo") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSim2Operator();
         }
     },
-    ASS_SIM_CARD("ass_simCard") {
+    ASS_SIM_CARD("ass_simcard") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSimOperator();
         }
     },
-    ASS_SIM_ONE_ICCID("ass_simOneIccid") {
+    ASS_SIM_ONE_ICCID("ass_simoneiccid") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSim1Iccid();
         }
     },
-    ASS_SIM_TWO_ICCID("ass_simTwoIccid") {
+    ASS_SIM_TWO_ICCID("ass_simtwoiccid") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSim2Iccid();
         }
     },
-    ASS_STORAGE_USAGE("ass_storageUsage") {
+    ASS_STORAGE_USAGE("ass_storageusage") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getStorageUsageBytes();
         }
     },
-    ASS_TOTAL_USAGE("ass_totalUsage") {
+    ASS_TOTAL_USAGE("ass_totalusage") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getTotalStorageBytes();
@@ -109,43 +109,43 @@ public enum BasicIngestionKey {
             return provider.getRamUsageBytes();
         }
     },
-    ASS_SIGNAL_INTENSITY("ass_signalIntensity") {
+    ASS_SIGNAL_INTENSITY("ass_signalintensity") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSignalStrengthLevel();
         }
     },
-    ASS_TOTAL_RAM("ass_totalRam") {
+    ASS_TOTAL_RAM("ass_totalram") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getTotalRamBytes();
         }
     },
-    ASS_SIGNAL_INTENSITY_ONE("ass_signalIntensityOne") {
+    ASS_SIGNAL_INTENSITY_ONE("ass_signalintensityone") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSignalIntensityCarrier1Level();
         }
     },
-    ASS_SIGNAL_INTENSITY_TWO("ass_signalIntensityTwo") {
+    ASS_SIGNAL_INTENSITY_TWO("ass_signalintensitytwo") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSignalIntensityCarrier2Level();
         }
     },
-    ASS_ANDROID_VERSION("ass_androidVersion") {
+    ASS_ANDROID_VERSION("ass_androidversion") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getAndroidVersion();
         }
     },
-    ASS_TIME_ZONE("ass_timeZone") {
+    ASS_TIME_ZONE("ass_timezone") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getTimeZoneOffsetDisplay();
         }
     },
-    ASS_NETWORK_IP("ass_networkIp") {
+    ASS_NETWORK_IP("ass_networkip") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getTerminalIp();
@@ -159,7 +159,7 @@ public enum BasicIngestionKey {
                     : DeviceState.UNSUPPORTED.getValue();
         }
     },
-    ASS_SIM_CARD_ONE("ass_simCardOne") {
+    ASS_SIM_CARD_ONE("ass_simcardone") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSim1Operator();

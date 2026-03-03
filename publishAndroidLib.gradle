@@ -24,7 +24,7 @@ if (secretPropsFile.exists()) {
 
 def PUBLISH_GROUP_ID = 'com.whatspos.sdk' //这里可以不是直接申请时候的groupId只要开头是就可以
 
-def PUBLISH_ARTIFACT_ID = "paxstore-3rd-app-android-sdk"
+def PUBLISH_ARTIFACT_ID = "paxstore-3rd-app-android-goinsight-sdk"
 
 def PUBLISH_VERSION = project.version //这个是直接获取的库gradle里配置好的版本号，不用到处修改版本号，只需要维护一份就可以。
 
@@ -66,16 +66,16 @@ publishing {
 
 
             pom {
-                name = 'paxstore-3rd-app-android-sdk'
+                name = 'paxstore-3rd-app-android-goinsight-sdk'
                 description = 'PAXSTORE 3rd App Android SDK provides simple and easy-to-use service interfaces for third party developers to develop android apps on PAXSTORE.'
-                url = 'https://github.com/PAXSTORE/paxstore-3rd-app-android-sdk'
+                url = 'https://github.com/PAXSTORE/paxstore-3rd-app-android-goinsight-sdk'
 
                 scm {
                     //修改成你的Git地址：
-                    connection = 'scm:git:github.com/PAXSTORE/paxstore-3rd-app-android-sdk.git'
-                    developerConnection = 'scm:git:ssh://github.com/PAXSTORE/paxstore-3rd-app-android-sdk.git'
+                    connection = 'scm:git:github.com/PAXSTORE/paxstore-3rd-app-android-goinsight-sdk.git'
+                    developerConnection = 'scm:git:ssh://github.com/PAXSTORE/paxstore-3rd-app-android-goinsight-sdk.git'
                     //分支地址：
-                    url = 'https://github.com/PAXSTORE/paxstore-3rd-app-android-sdk/tree/master'
+                    url = 'https://github.com/PAXSTORE/ppaxstore-3rd-app-android-goinsight-sdk/tree/master'
                 }
 
                 licenses {
@@ -87,7 +87,7 @@ publishing {
 
                 developers { // 改成你自己的信息
                     developer {
-                        name = 'Derek'
+                        name = 'John'
                         email = 'paxstore-support@paxsz.com'
                     }
                 }

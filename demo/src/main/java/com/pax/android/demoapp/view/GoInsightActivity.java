@@ -58,7 +58,7 @@ public class GoInsightActivity extends Activity {
 
         DeviceInfoFacade deviceInfoFacade = new DeviceInfoFacade(this);
         deviceInfoFacade.requestAllRequiredPermissions(this, 1001);
-//        printBasicIngestionKeyValues();
+
     }
 
     private void printBasicIngestionKeyValues() {
