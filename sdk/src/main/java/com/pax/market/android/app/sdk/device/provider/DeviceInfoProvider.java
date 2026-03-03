@@ -34,7 +34,7 @@ import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
 
-import com.pax.market.android.app.sdk.device.model.LocationInfo;
+import com.pax.market.android.app.sdk.device.model.DeviceState;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
 import java.net.Inet4Address;
@@ -62,6 +62,16 @@ public class DeviceInfoProvider {
 
     public String getTimeZoneId() {
         return TimeZone.getDefault().getID();
+    }
+
+    /** Returns timezone offset string e.g. "GMT+08:00", "GMT-05:00". */
+    public String getTimeZoneOffsetDisplay() {
+        int offsetMs = TimeZone.getDefault().getRawOffset();
+        int offsetMinutes = offsetMs / (60 * 1000);
+        int hours = offsetMinutes / 60;
+        int minutes = Math.abs(offsetMinutes % 60);
+        String sign = offsetMinutes >= 0 ? "+" : "-";
+        return String.format(Locale.ROOT, "GMT%s%02d:%02d", sign, Math.abs(hours), minutes);
     }
 
     @SuppressLint("HardwareIds")
@@ -145,15 +155,17 @@ public class DeviceInfoProvider {
         return null;
     }
 
-    public boolean isGravitySensorSupported() {
+    public String isGravitySensorSupported() {
         SensorManager sensorManager =
                 (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
-        return sensorManager != null
+        boolean supported = sensorManager != null
                 && sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY) != null;
+        return supported ? DeviceState.SUPPORTED.getValue() : DeviceState.UNSUPPORTED.getValue();
     }
 
-    public boolean isBluetoothSupported() {
-        return BluetoothAdapter.getDefaultAdapter() != null;
+    public String isBluetoothSupported() {
+        boolean supported = BluetoothAdapter.getDefaultAdapter() != null;
+        return supported ? DeviceState.SUPPORTED.getValue() : DeviceState.UNSUPPORTED.getValue();
     }
 
     public String getAndroidVersion() {
@@ -364,21 +376,22 @@ public class DeviceInfoProvider {
         return getIccidForSubscriptionIndex(1);
     }
 
-    public boolean isGpsEnabled() {
+    public String isGpsEnabled() {
         LocationManager locationManager =
                 (LocationManager) appContext.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager == null) {
-            return false;
+            return DeviceState.DISABLED.getValue();
         }
         try {
-            return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            boolean enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            return enabled ? DeviceState.ENABLED.getValue() : DeviceState.DISABLED.getValue();
         } catch (Exception ignored) {
-            return false;
+            return DeviceState.DISABLED.getValue();
         }
     }
 
     @SuppressLint("MissingPermission")
-    public LocationInfo getLocation() {
+    public String getLocation() {
         if (!hasLocationPermission()) {
             return null;
         }
@@ -402,7 +415,7 @@ public class DeviceInfoProvider {
         if (location == null) {
             return null;
         }
-        return new LocationInfo(location.getLatitude(), location.getLongitude());
+        return String.format(Locale.ROOT, "%f,%f", location.getLatitude(), location.getLongitude());
     }
 
     private long getAvailableStorageBytes() {

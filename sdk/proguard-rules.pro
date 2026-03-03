@@ -71,6 +71,10 @@
 -keep class com.pax.market.android.app.sdk.dto.**{*;}
 -keep class com.pax.market.api.sdk.java.api.param.dto.**{*;}
 
+# GoInsight Associate: keep DTO for Gson/SP (config deserialization), avoid empty config in release
+-keep class com.pax.market.android.app.sdk.goinsight.dto.** { *; }
+-keepclassmembers class com.pax.market.android.app.sdk.goinsight.dto.** { *; }
+
 #default
 -keep public class * extends android.app.Activity
 -keep public class * extends android.app.Service

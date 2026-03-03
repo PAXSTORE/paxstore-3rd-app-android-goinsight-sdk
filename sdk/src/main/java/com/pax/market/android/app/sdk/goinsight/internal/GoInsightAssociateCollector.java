@@ -25,17 +25,34 @@ public class GoInsightAssociateCollector {
         this.installedAppsProvider = installedAppsProvider;
     }
 
+    /**
+     * Returns one list with one map: biz + device + app merged into a single map.
+     * So the result is a single list containing a single map, not two lists or list+list.
+     */
     public List<Map<String, Object>> appendDeviceData(List<Map<String, Object>> list,
                                                       DatasetAssociateColsResponse config) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        if (list != null && !list.isEmpty()) {
-            result.addAll(list);
+        Map<String, Object> merged = new HashMap<>();
+        if (list != null) {
+            for (Map<String, Object> m : list) {
+                if (m != null && !m.isEmpty()) {
+                    merged.putAll(m);
+                }
+            }
         }
         Map<String, Object> deviceData = buildDeviceDataMap(config);
         if (!deviceData.isEmpty()) {
-            result.add(deviceData);
+            merged.putAll(deviceData);
         }
-        result.addAll(buildInstalledAppsData(config));
+        List<Map<String, Object>> appMaps = buildInstalledAppsData(config);
+        for (Map<String, Object> appMap : appMaps) {
+            if (appMap != null && !appMap.isEmpty()) {
+                merged.putAll(appMap);
+            }
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (!merged.isEmpty()) {
+            result.add(merged);
+        }
         return result;
     }
 

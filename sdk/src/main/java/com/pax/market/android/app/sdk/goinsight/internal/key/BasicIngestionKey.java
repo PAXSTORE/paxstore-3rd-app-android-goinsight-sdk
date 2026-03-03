@@ -1,5 +1,6 @@
 package com.pax.market.android.app.sdk.goinsight.internal.key;
 
+import com.pax.market.android.app.sdk.device.model.DeviceState;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;
 
@@ -130,6 +131,38 @@ public enum BasicIngestionKey {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
             return provider.getSignalIntensityCarrier2Level();
+        }
+    },
+    ASS_ANDROID_VERSION("ass_androidVersion") {
+        @Override
+        public Object getValue(DeviceInfoProvider provider) {
+            return provider.getAndroidVersion();
+        }
+    },
+    ASS_TIME_ZONE("ass_timeZone") {
+        @Override
+        public Object getValue(DeviceInfoProvider provider) {
+            return provider.getTimeZoneOffsetDisplay();
+        }
+    },
+    ASS_NETWORK_IP("ass_networkIp") {
+        @Override
+        public Object getValue(DeviceInfoProvider provider) {
+            return provider.getTerminalIp();
+        }
+    },
+    ASS_SIM("ass_sim") {
+        @Override
+        public Object getValue(DeviceInfoProvider provider) {
+            return provider.isSimSupported()
+                    ? DeviceState.SUPPORTED.getValue()
+                    : DeviceState.UNSUPPORTED.getValue();
+        }
+    },
+    ASS_SIM_CARD_ONE("ass_simCardOne") {
+        @Override
+        public Object getValue(DeviceInfoProvider provider) {
+            return provider.getSim1Operator();
         }
     };
 
