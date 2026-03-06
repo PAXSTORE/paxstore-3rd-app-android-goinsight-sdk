@@ -1,7 +1,6 @@
 package com.pax.market.android.app.sdk.goinsight.internal.key;
 
 import com.pax.market.android.app.sdk.device.model.DeviceState;
-import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.provider.DeviceInfoProvider;
 
 import java.util.Collections;
@@ -21,8 +20,7 @@ public enum BasicIngestionKey {
     ASS_NETWORK("ass_network") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
-            NetworkType networkType = provider.getNetworkType();
-            return networkType == null ? null : networkType.name();
+            return provider.getNetworkTypeDisplay();
         }
     },
     ASS_BLUETOOTH("ass_bluetooth") {
@@ -148,7 +146,7 @@ public enum BasicIngestionKey {
     ASS_NETWORK_IP("ass_networkip") {
         @Override
         public Object getValue(DeviceInfoProvider provider) {
-            return provider.getTerminalIp();
+            return provider.getTerminalIp(false);
         }
     },
     ASS_SIM("ass_sim") {

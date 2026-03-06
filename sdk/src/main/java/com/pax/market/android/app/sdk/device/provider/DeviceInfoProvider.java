@@ -38,10 +38,13 @@ import com.pax.market.android.app.sdk.device.model.DeviceState;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
 import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -57,7 +60,7 @@ public class DeviceInfoProvider {
     }
 
     public String getLanguage() {
-        return Locale.getDefault().toString();
+        return Locale.getDefault().getDisplayLanguage();
     }
 
     public String getTimeZoneId() {
@@ -140,17 +143,57 @@ public class DeviceInfoProvider {
         return null;
     }
 
-    public String getTerminalIp() {
+    /**
+     * @param includeIpv6 true to collect both IPv4 and IPv6, false to collect IPv4 only
+     */
+    public String getTerminalIp(boolean includeIpv6) {
         try {
-            for (NetworkInterface networkInterface : Collections.list(
-                    NetworkInterface.getNetworkInterfaces())) {
-                for (InetAddress address : Collections.list(networkInterface.getInetAddresses())) {
-                    if (!address.isLoopbackAddress() && address instanceof Inet4Address) {
-                        return address.getHostAddress();
+            Set<String> ips = new LinkedHashSet<>();
+            Enumeration<NetworkInterface> nis = NetworkInterface.getNetworkInterfaces();
+            if (nis == null) {
+                return null;
+            }
+            while (nis.hasMoreElements()) {
+                NetworkInterface ni = nis.nextElement();
+                if (ni == null || !ni.isUp()) {
+                    continue;
+                }
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+                if (addresses == null) {
+                    continue;
+                }
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (address == null || address.isLoopbackAddress()) {
+                        continue;
+                    }
+                    String ip = getIpString(address, includeIpv6);
+                    if (ip != null && !ip.isEmpty()) {
+                        ips.add(ip);
                     }
                 }
             }
+            return ips.isEmpty() ? null : String.join(",", ips);
         } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    /** Collects both IPv4 and IPv6 by default. */
+    public String getTerminalIp() {
+        return getTerminalIp(true);
+    }
+
+    private String getIpString(InetAddress address, boolean includeIpv6) {
+        if (address instanceof Inet4Address) {
+            return address.getHostAddress();
+        }
+        if (includeIpv6 && address instanceof Inet6Address) {
+            String raw = address.getHostAddress();
+            if (raw != null) {
+                int scopeIdx = raw.indexOf('%');
+                return scopeIdx < 0 ? raw.toUpperCase() : raw.substring(0, scopeIdx).toUpperCase();
+            }
         }
         return null;
     }
@@ -253,6 +296,12 @@ public class DeviceInfoProvider {
             return NetworkType.NETWORK_ETHERNET;
         }
         return NetworkType.NETWORK_UNKNOWN;
+    }
+
+    /** Returns network type string for ingestion, with "NETWORK_" prefix stripped. */
+    public String getNetworkTypeDisplay() {
+        NetworkType networkType = getNetworkType();
+        return networkType == null ? null : networkType.name().replace("NETWORK_", "");
     }
 
     private int getNetworkSubtype() {
