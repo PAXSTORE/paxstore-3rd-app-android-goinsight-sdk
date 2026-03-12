@@ -351,14 +351,23 @@ public class DeviceInfoProvider {
     }
 
     public Integer getSignalStrengthLevel() {
+        if (!isSimSupported()) {
+            return null;
+        }
         return getSignalLevelForTelephonyManager(getDefaultTelephonyManager());
     }
 
     public Integer getSignalIntensityCarrier1Level() {
+        if (!isSimSupported()) {
+            return null;
+        }
         return getSignalLevelForSubscriptionIndex(0);
     }
 
     public Integer getSignalIntensityCarrier2Level() {
+        if (!isSimSupported()) {
+            return null;
+        }
         return getSignalLevelForSubscriptionIndex(1);
     }
 
@@ -372,7 +381,7 @@ public class DeviceInfoProvider {
             return false;
         }
         int state = telephonyManager.getSimState();
-        return state != TelephonyManager.SIM_STATE_ABSENT;
+        return state == TelephonyManager.SIM_STATE_READY;
     }
 
     public String getSimOperator() {
