@@ -4,6 +4,7 @@ import static android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.app.usage.StorageStatsManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.hardware.Sensor;
@@ -17,6 +18,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
+import android.os.storage.StorageManager;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
 import android.telephony.CellInfoGsm;
@@ -33,10 +35,14 @@ import android.telephony.TelephonyCallback;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.pax.market.android.app.sdk.device.model.DeviceState;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
+
+import java.io.File;
+import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -47,8 +53,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.UUID;
 
 public class DeviceInfoProvider {
+    private static final String TAG = "DeviceInfoProvider";
     private static final int API_LEVEL_SIGNAL_STRENGTHS_LISTENER = 31;
 
     private final Context appContext;
@@ -216,7 +224,34 @@ public class DeviceInfoProvider {
     }
 
     public long getTotalStorageBytes() {
-        StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                StorageStatsManager storageStatsManager =
+                        (StorageStatsManager) appContext.getSystemService(Context.STORAGE_STATS_SERVICE);
+                UUID uuid = StorageManager.UUID_DEFAULT;
+                return storageStatsManager.getTotalBytes(uuid);
+            } catch (Exception e) {
+                Log.w(TAG, "VERSION.O getTotalInternalStorageSize err: " + e);
+            }
+        }
+
+        // Android 7.1
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
+            try {
+                StorageManager storageManager =
+                        (StorageManager) appContext.getSystemService(Context.STORAGE_SERVICE);
+                Method method =
+                        StorageManager.class.getMethod("getPrimaryStorageSize");
+                Object result = method.invoke(storageManager);
+                if (result instanceof Long) {
+                    return (Long) result;
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "VERSION.N_MR1 getTotalInternalStorageSize err: " + e);
+            }
+        }
+        File file = Environment.getDataDirectory();
+        StatFs statFs = new StatFs(file.getPath());
         return statFs.getBlockSizeLong() * statFs.getBlockCountLong();
     }
 
