@@ -40,6 +40,7 @@ import android.util.Log;
 import com.pax.market.android.app.sdk.device.model.DeviceState;
 import com.pax.market.android.app.sdk.device.model.NetworkType;
 import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
+import com.pax.market.android.app.sdk.goinsight.internal.key.BasicIngestionKey;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -50,14 +51,18 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DeviceInfoProvider {
     private static final String TAG = "DeviceInfoProvider";
     private static final int API_LEVEL_SIGNAL_STRENGTHS_LISTENER = 31;
+    private static final Map<String, BasicIngestionValueProvider> CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS =
+            new ConcurrentHashMap<>();
 
     private final Context appContext;
     private volatile Integer cachedDefaultSignalLevel = null;
@@ -65,6 +70,62 @@ public class DeviceInfoProvider {
 
     public DeviceInfoProvider(Context context) {
         this.appContext = context.getApplicationContext();
+    }
+
+    public static void registerBasicIngestionValueProvider(BasicIngestionKey key,
+                                                           BasicIngestionValueProvider provider) {
+        String normalizedKey = normalizeBasicIngestionKey(key);
+        if (normalizedKey == null) {
+            throw new IllegalArgumentException("key is empty");
+        }
+        if (provider == null) {
+            CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS.remove(normalizedKey);
+            return;
+        }
+        CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS.put(normalizedKey, provider);
+    }
+
+    public static void unregisterBasicIngestionValueProvider(BasicIngestionKey key) {
+        String normalizedKey = normalizeBasicIngestionKey(key);
+        if (normalizedKey != null) {
+            CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS.remove(normalizedKey);
+        }
+    }
+
+    public static void clearBasicIngestionValueProviders() {
+        CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS.clear();
+    }
+
+    public Object getBasicIngestionValue(String key) {
+        String normalizedKey = normalizeBasicIngestionKey(key);
+        if (normalizedKey == null) {
+            return null;
+        }
+        BasicIngestionValueProvider customProvider =
+                CUSTOM_BASIC_INGESTION_VALUE_PROVIDERS.get(normalizedKey);
+        if (customProvider != null) {
+            try {
+                return customProvider.getValue(this);
+            } catch (Exception e) {
+                Log.w(TAG, "Custom basic ingestion value provider failed for key: " + normalizedKey, e);
+            }
+        }
+        BasicIngestionKey basicIngestionKey = BasicIngestionKey.fromKey(normalizedKey);
+        return basicIngestionKey == null ? null : basicIngestionKey.getValue(this);
+    }
+
+    private static String normalizeBasicIngestionKey(BasicIngestionKey key) {
+        if (key == null || TextUtils.isEmpty(key.getKey())) {
+            return null;
+        }
+        return key.getKey().trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String normalizeBasicIngestionKey(String key) {
+        if (TextUtils.isEmpty(key)) {
+            return null;
+        }
+        return key.trim().toLowerCase(Locale.ROOT);
     }
 
     public String getLanguage() {
