@@ -6,7 +6,7 @@ By integrating with this function, developers can upload bizdata with device/app
 ### 1.Add the dependency
 
 ```
-    implementation 'com.whatspos.sdk:paxstore-3rd-app-android-goinsight-sdk:10.0.0'
+    implementation 'com.whatspos.sdk:paxstore-3rd-app-android-goinsight-sdk:1.0.0'
 ```
 
 ### 2.Request Required Permissions
@@ -95,13 +95,3 @@ _**:red_square::red_square::red_square: Attention: If the upload fails, you need
                     // which may occur due to network or other issues, to prevent you from losing important data.
                 }
         }
-
-### 6.About DeviceInfoFacade And GoInsightAssociateApi
-At present, we recommend keeping DeviceInfoFacade and GoInsightAssociateApi separated.
-
-- DeviceInfoFacade focuses on permission request and custom value registration
-- GoInsightAssociateApi focuses on config fetching and GoInsight data upload
-
-This separation keeps the responsibilities clear and reduces coupling.
-
-If needed in the future, some helper methods can be proxied in GoInsightAssociateApi, but it is not recommended to move all DeviceInfoFacade logic into it directly.
