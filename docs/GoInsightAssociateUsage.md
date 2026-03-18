@@ -6,7 +6,7 @@ By integrating with this function, developers can upload bizdata with device/app
 ### 1.Add the dependency
 
 ```
-    implementation 'com.whatspos.sdk:paxstore-3rd-app-android-goinsight-sdk:10.0.0'
+    implementation 'com.whatspos.sdk:paxstore-3rd-app-android-goinsight-sdk:1.0.0'
 ```
 
 ### 2.Request Required Permissions
