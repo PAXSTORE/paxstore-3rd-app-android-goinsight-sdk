@@ -95,13 +95,3 @@ _**:red_square::red_square::red_square: Attention: If the upload fails, you need
                     // which may occur due to network or other issues, to prevent you from losing important data.
                 }
         }
-
-### 6.About DeviceInfoFacade And GoInsightAssociateApi
-At present, we recommend keeping DeviceInfoFacade and GoInsightAssociateApi separated.
-
-- DeviceInfoFacade focuses on permission request and custom value registration
-- GoInsightAssociateApi focuses on config fetching and GoInsight data upload
-
-This separation keeps the responsibilities clear and reduces coupling.
-
-If needed in the future, some helper methods can be proxied in GoInsightAssociateApi, but it is not recommended to move all DeviceInfoFacade logic into it directly.
