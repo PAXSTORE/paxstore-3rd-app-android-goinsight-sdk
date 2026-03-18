@@ -2,6 +2,8 @@
 
 By integrating with this function, developers can upload bizdata to our GoInsight platform.
 
+If you want to upload associate data together with bizdata, please refer to [GoInsightAssociateUsage](GoInsightAssociateUsage.md).
+
 
 ### 1：Initialization of Sdk
 Refer to the [SetUp](../README.md)
@@ -44,7 +46,8 @@ _**:red_square::red_square::red_square: Attention: If the upload fails, you need
                 }
             }
         }
-
+### 4.Associate Upload
+If you want to upload associate data together with bizdata, please refer to [GoInsightAssociateUsage](GoInsightAssociateUsage.md).
 
 **Possible business codes**
 
