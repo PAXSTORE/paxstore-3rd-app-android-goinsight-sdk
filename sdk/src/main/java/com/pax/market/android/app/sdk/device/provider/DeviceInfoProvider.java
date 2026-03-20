@@ -2,11 +2,13 @@ package com.pax.market.android.app.sdk.device.provider;
 
 import static android.telephony.TelephonyManager.NETWORK_TYPE_TD_SCDMA;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.usage.StorageStatsManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.location.Location;
@@ -714,20 +716,6 @@ public class DeviceInfoProvider {
     private String getCellIdForTelephonyManager(TelephonyManager telephonyManager) {
         if (telephonyManager == null || !hasLocationPermission()) {
             return null;
-        }
-        try {
-            List<CellInfo> cellInfos = telephonyManager.getAllCellInfo();
-            if (cellInfos != null) {
-                for (CellInfo cellInfo : cellInfos) {
-                    if (cellInfo != null && cellInfo.isRegistered()) {
-                        String cellId = getCellIdFromCellInfo(cellInfo);
-                        if (!TextUtils.isEmpty(cellId)) {
-                            return cellId;
-                        }
-                    }
-                }
-            }
-        } catch (SecurityException ignored) {
         }
         try {
             CellLocation cellLocation = telephonyManager.getCellLocation();
