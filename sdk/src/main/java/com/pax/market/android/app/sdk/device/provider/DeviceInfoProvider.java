@@ -470,6 +470,9 @@ public class DeviceInfoProvider {
     }
 
     public String getCellId() {
+        if (!isSimSupported()) {
+            return null;
+        }
         return getCellIdForTelephonyManager(getDefaultTelephonyManager());
     }
 
