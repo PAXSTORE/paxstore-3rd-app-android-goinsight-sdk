@@ -15,6 +15,8 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
@@ -447,10 +449,13 @@ public class DeviceInfoProvider {
     }
 
     public Integer getSignalStrengthLevel() {
-        if (!isSimSupported()) {
-            return null;
+        if (isSimSupported()) {
+            Integer simLevel = getSignalLevelForTelephonyManager(getDefaultTelephonyManager());
+            if (simLevel != null) {
+                return simLevel;
+            }
         }
-        return getSignalLevelForTelephonyManager(getDefaultTelephonyManager());
+        return getWifiSignalStrengthLevel();
     }
 
     public Integer getSignalIntensityCarrier1Level() {
@@ -468,6 +473,9 @@ public class DeviceInfoProvider {
     }
 
     public String getCellId() {
+        if (!isSimSupported()) {
+            return null;
+        }
         return getCellIdForTelephonyManager(getDefaultTelephonyManager());
     }
 
@@ -586,6 +594,54 @@ public class DeviceInfoProvider {
                 DevicePermissionManager.PERMISSION_ACCESS_FINE_LOCATION)
                 || DevicePermissionManager.hasPermission(appContext,
                 DevicePermissionManager.PERMISSION_ACCESS_COARSE_LOCATION);
+    }
+
+    private Integer getWifiSignalStrengthLevel() {
+        if (!DevicePermissionManager.hasPermission(appContext,
+                DevicePermissionManager.PERMISSION_ACCESS_WIFI_STATE)) {
+            return null;
+        }
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) appContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager == null) {
+            return null;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Network network = connectivityManager.getActiveNetwork();
+            if (network == null) {
+                return null;
+            }
+            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+            if (capabilities == null
+                    || !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                return null;
+            }
+        } else {
+            NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+            if (info == null || !info.isConnected() || info.getType() != ConnectivityManager.TYPE_WIFI) {
+                return null;
+            }
+        }
+
+        WifiManager wifiManager =
+                (WifiManager) appContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager == null) {
+            return null;
+        }
+        try {
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            if (wifiInfo == null) {
+                return null;
+            }
+            int rssi = wifiInfo.getRssi();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                return wifiManager.calculateSignalLevel(rssi);
+            } else {
+                return WifiManager.calculateSignalLevel(rssi, 5);
+            }
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private Integer getSignalLevelForSubscriptionIndex(int index) {
@@ -714,20 +770,6 @@ public class DeviceInfoProvider {
     private String getCellIdForTelephonyManager(TelephonyManager telephonyManager) {
         if (telephonyManager == null || !hasLocationPermission()) {
             return null;
-        }
-        try {
-            List<CellInfo> cellInfos = telephonyManager.getAllCellInfo();
-            if (cellInfos != null) {
-                for (CellInfo cellInfo : cellInfos) {
-                    if (cellInfo != null && cellInfo.isRegistered()) {
-                        String cellId = getCellIdFromCellInfo(cellInfo);
-                        if (!TextUtils.isEmpty(cellId)) {
-                            return cellId;
-                        }
-                    }
-                }
-            }
-        } catch (SecurityException ignored) {
         }
         try {
             CellLocation cellLocation = telephonyManager.getCellLocation();
