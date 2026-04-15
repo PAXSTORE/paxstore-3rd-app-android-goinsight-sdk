@@ -23,7 +23,7 @@ import java.util.TimeZone;
 
 public class GoInsightAssociateApi extends GoInsightApi {
     private static final String DATASET_ASSOCIATE_CONFIG_URL = "v1/3rdApps/goInsight/dataset/associate/config";
-    private static final long CONFIG_REFRESH_INTERVAL_MS = 60 * 1000;
+    private static final long CONFIG_REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000L;
     private static final String SP_NAME = "go_insight_associate";
     private static final String SP_KEY_CACHED_CONFIG = "cached_config";
     private static final String SP_KEY_LAST_CONFIG_FETCH_MS = "last_config_fetch_ms";
