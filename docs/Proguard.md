@@ -6,25 +6,17 @@
     -keep class com.google.gson.** { *; }
     -keep class com.google.gson.examples.android.model.** { *; }
     
-    #JJWT
-    -keepnames class com.fasterxml.jackson.databind.** { *; }
-    -dontwarn com.fasterxml.jackson.databind.*
+    #JWT (nimbus-jose-jwt, used by paxstore-3rd-app-android-sdk 11.0.0+)
     -keepattributes InnerClasses
     -keep class org.bouncycastle.** { *; }
     -keepnames class org.bouncycastle.** { *; }
     -dontwarn org.bouncycastle.**
-    -keep class io.jsonwebtoken.** { *; }
-    -keepnames class io.jsonwebtoken.* { *; }
-    -keepnames interface io.jsonwebtoken.* { *; }
+    -keep class com.nimbusds.** { *; }
+    -dontwarn com.nimbusds.**
     -dontwarn javax.xml.bind.DatatypeConverter
-    -dontwarn io.jsonwebtoken.impl.Base64Codec
-    -keepnames class com.fasterxml.jackson.** { *; }
-    -keepnames interface com.fasterxml.jackson.** { *; }
     
     -dontwarn org.xml.sax.**
     -keep class org.xml.sax.**{*;}
-    -dontwarn com.fasterxml.jackson.**
-    -keep class com.fasterxml.jackson.**{*;}
     -dontwarn com.pax.market.api.sdk.java.base.util.**
     -keep class com.pax.market.api.sdk.java.base.util.**{*;}
     -dontwarn org.w3c.dom.**
