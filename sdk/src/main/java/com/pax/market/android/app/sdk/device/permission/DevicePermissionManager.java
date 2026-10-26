@@ -8,7 +8,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -24,42 +24,53 @@ public final class DevicePermissionManager {
     /** QUERY_ALL_PACKAGES added in API 30; use string to support minSdk &lt; 30 */
     @SuppressLint("InlinedApi")
     public static final String PERMISSION_QUERY_ALL_PACKAGES = Manifest.permission.QUERY_ALL_PACKAGES;
+    /**
+     * Vendor-specific permission present only on some customized ROMs.
+     * Never treat it as a cross-device required permission: on stock Android the system
+     * does not recognize it, so checkSelfPermission() would always return DENIED.
+     * Use {@link #canQueryInstalledApps(Context)} for capability probing instead.
+     */
     public static final String PERMISSION_GET_INSTALLED_APPS = "com.android.permission.GET_INSTALLED_APPS";
     /** Signature/privileged only; used to read IMEI/ICCID on API 29+. Not requestable by normal apps. */
     @SuppressLint("InlinedApi")
     public static final String PERMISSION_READ_PRIVILEGED_PHONE_STATE = "android.permission.READ_PRIVILEGED_PHONE_STATE";
 
-    private static final String[] BASE_REQUIRED_PERMISSIONS = new String[] {
+    /**
+     * Runtime (dangerous) permissions that must be requested dynamically on API 23+.
+     * Only cross-device standard permissions belong here; normal / vendor permissions must not.
+     */
+    private static final String[] RUNTIME_PERMISSIONS = new String[] {
             PERMISSION_READ_PHONE_STATE,
             PERMISSION_ACCESS_FINE_LOCATION,
-            PERMISSION_ACCESS_COARSE_LOCATION,
-            PERMISSION_ACCESS_NETWORK_STATE,
-            PERMISSION_ACCESS_WIFI_STATE,
-            PERMISSION_GET_INSTALLED_APPS
+            PERMISSION_ACCESS_COARSE_LOCATION
     };
-
-    private static final int API_LEVEL_QUERY_ALL_PACKAGES = 30;
 
     private DevicePermissionManager() {
     }
 
-    /** Returns required permissions for current API level. QUERY_ALL_PACKAGES only on API 30+. */
-    private static List<String> getRequiredPermissionsForCurrentApi() {
-        List<String> permissions = new ArrayList<>();
-        Collections.addAll(permissions, BASE_REQUIRED_PERMISSIONS);
-        if (Build.VERSION.SDK_INT >= API_LEVEL_QUERY_ALL_PACKAGES) {
-            permissions.add(PERMISSION_QUERY_ALL_PACKAGES);
-        }
-        permissions.add(PERMISSION_GET_INSTALLED_APPS);
-        return permissions;
+    /**
+     * Returns the runtime (dangerous) permissions that need to be requested dynamically.
+     * Normal permissions (ACCESS_NETWORK_STATE / ACCESS_WIFI_STATE / QUERY_ALL_PACKAGES) and the
+     * vendor permission (GET_INSTALLED_APPS) are intentionally excluded: they are granted at
+     * install time (or vendor-only) and cannot be requested at runtime.
+     */
+    public static List<String> getRuntimePermissions() {
+        return new ArrayList<>(Arrays.asList(RUNTIME_PERMISSIONS));
     }
 
+    /**
+     * Kept for backward compatibility; now delegates to {@link #getRuntimePermissions()}.
+     */
     public static List<String> getRequiredPermissions() {
-        return getRequiredPermissionsForCurrentApi();
+        return getRuntimePermissions();
     }
 
+    /**
+     * Whether all runtime (dangerous) permissions are granted. Vendor / normal permissions are
+     * not part of this check, so it will not falsely return false on stock Android devices.
+     */
     public static boolean hasAllRequiredPermissions(Context context) {
-        for (String permission : getRequiredPermissionsForCurrentApi()) {
+        for (String permission : getRuntimePermissions()) {
             if (!hasPermission(context, permission)) {
                 return false;
             }
@@ -67,12 +78,13 @@ public final class DevicePermissionManager {
         return true;
     }
 
+    /** Requests only the missing runtime (dangerous) permissions. */
     public static void requestAllRequiredPermissions(Activity activity, int requestCode) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
         List<String> missing = new ArrayList<>();
-        for (String permission : getRequiredPermissionsForCurrentApi()) {
+        for (String permission : getRuntimePermissions()) {
             if (!hasPermission(activity, permission)) {
                 missing.add(permission);
             }
@@ -95,5 +107,18 @@ public final class DevicePermissionManager {
         } catch (Throwable ignored) {
             return false;
         }
+    }
+
+    /**
+     * Whether the app can enumerate installed packages.
+     * Prefers the vendor permission when the ROM provides it, otherwise falls back to
+     * QUERY_ALL_PACKAGES (API 30+). On API &lt; 30 package visibility is unrestricted, so
+     * {@link #hasPermission(Context, String)} already returns true for QUERY_ALL_PACKAGES.
+     */
+    public static boolean canQueryInstalledApps(Context context) {
+        if (hasPermission(context, PERMISSION_GET_INSTALLED_APPS)) {
+            return true;
+        }
+        return hasPermission(context, PERMISSION_QUERY_ALL_PACKAGES);
     }
 }
