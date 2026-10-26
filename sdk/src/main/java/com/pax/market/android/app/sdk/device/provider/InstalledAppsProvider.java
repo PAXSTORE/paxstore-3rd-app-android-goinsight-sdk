@@ -11,6 +11,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 
 import com.pax.market.android.app.sdk.device.model.InstalledAppInfo;
+import com.pax.market.android.app.sdk.device.permission.DevicePermissionManager;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -36,6 +37,11 @@ public class InstalledAppsProvider {
     public List<InstalledAppInfo> getInstalledApps() {
         PackageManager packageManager = appContext.getPackageManager();
         if (packageManager == null) {
+            return Collections.emptyList();
+        }
+        // Without package-visibility permission the list would be incomplete/empty on API 30+.
+        // Probe vendor permission first, then fall back to QUERY_ALL_PACKAGES.
+        if (!DevicePermissionManager.canQueryInstalledApps(appContext)) {
             return Collections.emptyList();
         }
         List<PackageInfo> packages = packageManager.getInstalledPackages(0);
