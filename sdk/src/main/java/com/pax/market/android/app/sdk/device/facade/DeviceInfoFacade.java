@@ -27,6 +27,16 @@ public class DeviceInfoFacade {
         return DevicePermissionManager.getRequiredPermissions();
     }
 
+    /** Runtime (dangerous) permissions that need dynamic request on API 23+. */
+    public List<String> getRuntimePermissions() {
+        return DevicePermissionManager.getRuntimePermissions();
+    }
+
+    /** Whether installed packages can be enumerated (vendor permission or QUERY_ALL_PACKAGES). */
+    public boolean canQueryInstalledApps(Context context) {
+        return DevicePermissionManager.canQueryInstalledApps(context);
+    }
+
     public boolean hasAllRequiredPermissions(Context context) {
         return DevicePermissionManager.hasAllRequiredPermissions(context);
     }
